@@ -61,34 +61,38 @@ public class BlackboxBlockRenderManager extends ForgeBlockModelRenderer {
         lighter.setWorld(world);
         lighter.setState(state);
         lighter.setBlockPos(pos);
+
         if (state.getBlock() instanceof BlockLeaves) {
             return renderLeaves(lighter, world, state, pos, model, checkSides, rand);
         }
+
         boolean empty = true;
         List<BakedQuad> quads = model.getQuads(state, null, rand);
         if (!quads.isEmpty()) {
             lighter.updateBlockInfo();
             empty = false;
-            for (BakedQuad quad : quads) {
-                quad.pipe(lighter);
-            }
+            pipeQuads(lighter, quads);
         }
+
         for (EnumFacing side : EnumFacing.VALUES) {
             quads = model.getQuads(state, side, rand);
-            if (!quads.isEmpty()) {
-                if (!checkSides || state.shouldSideBeRendered(world, pos, side)) {
-                    if (empty) {
-                        lighter.updateBlockInfo();
-                    }
-                    empty = false;
-                    for (BakedQuad quad : quads) {
-                        quad.pipe(lighter);
-                    }
+            if (!quads.isEmpty() && (!checkSides || state.shouldSideBeRendered(world, pos, side))) {
+                if (empty) {
+                    lighter.updateBlockInfo();
                 }
+                empty = false;
+                pipeQuads(lighter, quads);
             }
         }
+
         lighter.resetBlockInfo();
         return !empty;
+    }
+
+    private void pipeQuads(VertexLighterFlat lighter, List<BakedQuad> quads) {
+        for (BakedQuad quad : quads) {
+            quad.pipe(lighter);
+        }
     }
 
     private boolean renderLeaves(VertexLighterFlat lighter, IBlockAccess world, IBlockState state, BlockPos pos, IBakedModel model, boolean checkSides, long rand) {
@@ -97,11 +101,15 @@ public class BlackboxBlockRenderManager extends ForgeBlockModelRenderer {
         if (!quads.isEmpty()) {
             lighter.updateBlockInfo();
             empty = false;
-            for (BakedQuad quad : quads) {
-                quad.pipe(lighter);
-            }
+            pipeQuads(lighter, quads);
         }
+
         Boolean smart = null;
+        boolean isDecayable = state.getValue(BlockLeaves.DECAYABLE);
+        boolean useSmartRendering = LeavesDetailsConfig.leavesMode == LeavesDetail.FANCY_SMART ||
+                (LeavesDetailsConfig.placedLeavesMode == Placed.FANCY_SMART && !isDecayable) ||
+                (LeavesDetailsConfig.naturalLeavesMode == Natural.FANCY_SMART && isDecayable);
+
         for (EnumFacing side : EnumFacing.VALUES) {
             quads = model.getQuads(state, side, rand);
             if (!quads.isEmpty()) {
@@ -110,23 +118,13 @@ public class BlackboxBlockRenderManager extends ForgeBlockModelRenderer {
                         lighter.updateBlockInfo();
                     }
                     empty = false;
-                    for (BakedQuad quad : quads) {
-                        quad.pipe(lighter);
-                    }
-                } else {
-                    if (smart == null) {
-                        smart = LeavesDetailsConfig.leavesMode == LeavesDetail.FANCY_SMART ||
-                                LeavesDetailsConfig.placedLeavesMode == Placed.FANCY_SMART && !state.getValue(BlockLeaves.DECAYABLE) ||
-                                LeavesDetailsConfig.naturalLeavesMode == Natural.FANCY_SMART && state.getValue(BlockLeaves.DECAYABLE);
-                    }
-                    if (smart) {
-                        for (BakedQuad quad : quads) {
-                            quad.pipe(lighter);
-                        }
-                    }
+                    pipeQuads(lighter, quads);
+                } else if (useSmartRendering) {
+                    pipeQuads(lighter, quads);
                 }
             }
         }
+
         lighter.resetBlockInfo();
         return !empty;
     }

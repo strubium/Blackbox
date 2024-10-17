@@ -115,7 +115,7 @@ public class SmoothLightPipeline implements ILightPipeline {
         if (!n2.hasUnpackedLightData()) {
             n2.unpackLightData();
         }
-        // Blend between the direct neighobors and above based on the passed weights
+        // Blend between the direct neighbors and above based on the passed weights
         float ao = (n1.getBlendedShade(w) * n1d) + (n2.getBlendedShade(w) * n2d);
         float sl = (n1.getBlendedSkyLight(w) * n1d) + (n2.getBlendedSkyLight(w) * n2d);
         float bl = (n1.getBlendedBlockLight(w) * n1d) + (n2.getBlendedBlockLight(w) * n2d);
